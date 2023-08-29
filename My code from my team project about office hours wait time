@@ -1,0 +1,161 @@
+This is code I did for a massive project that saw me and my team create an app to help with office hour wait times
+
+// API that I wrote to help find the student
+export const studentFind = async (req, res) => {
+    const { body } = req;
+
+    try {
+        const data = findStudentSchema.validateSync(body, { abortEarly: false, stripUnknown: true });
+        let id = data['studentID_pk']
+        let roomCode = data['room_code_pk']
+        let sqlQuery = `SELECT studentID_pk FROM student WHERE room_code_pk = "${roomCode}" AND is_waiting = 1 ORDER BY time_entered ASC`;
+
+        // return a json and go through it to find matching student ID
+        db.query(sqlQuery, function (error, result, fields) {
+            // throws error if something goes wrong
+            if (error) {
+                res.status(400).json({ message: 'Student doesn\'t exist!' })
+                throw error;
+            }
+            // prints result of the query
+            else {
+                var count = 0;
+                for (var i = 0; i < result.length; i++) {
+                    if (result[i].studentID_pk == id) {
+                        count++;
+                        break;
+                    }
+                    else {
+                        count++;
+                    }
+                }
+
+                return res.json({
+                    message: count
+                });
+            }
+        });
+    }
+    catch (error) {
+        return res.status(422).json({ errors: error.errors });
+    }
+
+// Routes
+import express from 'express'
+import { joinWaitingRoom } from '../controllers/student.js';
+import { leaveWaitingRoom } from '../controllers/student.js';
+import { studentFind } from '../controllers/student.js';
+const router = express.Router(); 
+
+/*
+    path from root: /student/joinWaitingRoom
+*/
+router.post('/joinWaitingRoom', joinWaitingRoom)
+
+/*
+    path from root: /student/leaveWaitingRoom
+*/
+router.post('/leaveWaitingRoom', leaveWaitingRoom)
+
+/*
+    path from root: /student/studentFind
+*/
+router.post('/studentFind', studentFind)
+
+
+export default router;
+
+// Validators
+import * as yup from 'yup';
+
+export const joinWaitingRoomSchema = yup
+    .object({
+        student_first_name: yup.string().trim().required(),
+        student_last_name: yup.string().trim().required(),
+        room_code: yup.string().trim().required()
+    })
+    .required();
+
+export const leaveWaitingRoomSchema = yup
+    .object({
+        studentID_pk: yup.string().trim().required()
+    })
+    .required();
+
+    export const findStudentSchema = yup
+    .object({
+        studentID_pk: yup.string().trim().required(),
+        room_code_pk: yup.string().trim().required(), 
+    })
+    .required();
+
+
+
+Other API that I worked on
+export const destroyWaitingRoom = async (req, res) => {
+    const { body } = req;
+    try {
+        const data = destroyWaitingRoomSchema.validateSync(body, { abortEarly: false, stripUnknown: true });
+       
+        let roomCode = data['room_code_pk']
+        
+        let sqlQuery = `UPDATE teaching_assistant SET time_destroyed = now() WHERE room_code_pk = "${roomCode}"`;
+        db.query(sqlQuery, function (error, rseult, fields) {
+            if (error) {
+                res.status(400).json({ message: 'failed to delete a waiting room' })
+                throw error;
+            }
+            else {
+                return res.json({
+                    message: 'successfully deleted waiting room',
+                    data
+                });
+            }
+        });
+    }
+    catch {
+        return res.status(422).json({ errors: error.errors });
+    }
+
+// Routes
+import express from 'express'
+import { createWaitingRoom } from '../controllers/waitingRoom.js';
+import { getAllStudentsInWaitingRoom } from '../controllers/waitingRoom.js';
+import { destroyWaitingRoom } from '../controllers/waitingRoom.js';
+const router = express.Router();
+
+/*
+    path from root: /waitingRoom/createWaitingRoom
+*/
+router.post('/createWaitingRoom', createWaitingRoom)
+
+/*
+    path from root: /waitingRoom/getAllStudentsInWaitingRoom
+*/
+router.get('/getAllStudentsInWaitingRoom', getAllStudentsInWaitingRoom)
+
+/*
+    path from root: /waitingRoom/destroyWaitingRoom
+*/
+router.post('/destroyWaitingRoom', destroyWaitingRoom)
+
+
+export default router;
+
+
+// Validators
+import * as yup from 'yup';
+
+export const createWaitingRoomSchema = yup
+    .object({
+        teaching_assistant_first_name: yup.string().trim().required(),
+        teaching_assistant_last_name: yup.string().trim().required(),
+        waiting_room_name: yup.string().trim().required()
+    })
+    .required();
+    
+    export const destroyWaitingRoomSchema = yup
+    .object({
+        room_code_pk: yup.string().trim().required()
+    })
+    .required();
