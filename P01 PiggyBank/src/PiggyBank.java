@@ -375,8 +375,6 @@ public class PiggyBank {
       return total;
     }
 
-    // aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-
 
     total = new int[] {size, 0, 0, 0, 0}; // return array
 
